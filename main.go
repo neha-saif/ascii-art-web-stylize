@@ -21,7 +21,7 @@ func main() {
 func homepage(w http.ResponseWriter, r *http.Request) {
 	// If it's nnot the homepage error handle
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		render404Page(w)
 		return
 	}
 
@@ -48,7 +48,7 @@ func resultpage(w http.ResponseWriter, r *http.Request) {
 
 	// if url is not for result page error handle
 	if r.URL.Path != "/result" {
-		http.NotFound(w, r)
+		render404Page(w)
 		return
 	}
 
@@ -98,5 +98,40 @@ func resultpage(w http.ResponseWriter, r *http.Request) {
 	err = t.Execute(w, res.String())
 	if err != nil {
 		http.Error(w, "Error executing template", http.StatusInternalServerError)
+	}
+}
+
+// Custom 404 page handler
+func render404Page(w http.ResponseWriter) {
+	// Set the 404 status code
+	w.WriteHeader(http.StatusNotFound)
+
+	// Generate ASCII art for "404" with the "Standard" style
+	inputString := "404"
+	style := "standard"
+
+	fileLines := functions.Read(style)
+	asciiRep := functions.AsciiRep(fileLines)
+
+	var res strings.Builder
+
+	// Process the ASCII art for "404"
+	asciiArt := functions.PrintStr(inputString, asciiRep)
+	for _, asciiLine := range asciiArt {
+		res.WriteString(strings.Join(asciiLine, ""))
+		res.WriteString("\n")
+	}
+
+	// Parse and render the custom 404 template
+	t, err := template.ParseFiles("static/404.html")
+	if err != nil {
+		http.Error(w, "Error parsing 404 HTML", http.StatusInternalServerError)
+		return
+	}
+
+	// Render the template with the result
+	err = t.Execute(w, res.String())
+	if err != nil {
+		http.Error(w, "Error executing 404 template", http.StatusInternalServerError)
 	}
 }
