@@ -2,7 +2,9 @@ package main
 
 import (
 	"ascii-art/functions"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -21,14 +23,15 @@ func main() {
 func homepage(w http.ResponseWriter, r *http.Request) {
 	// If it's nnot the homepage error handle
 	if r.URL.Path != "/" {
-		render404Page(w)
+		renderErrorPage(w, 404)
 		return
 	}
 
 	// Parse the HTML file
 	t, err := template.ParseFiles("index.html")
 	if err != nil {
-		http.Error(w, "Error parsing html", http.StatusInternalServerError)
+		// http.Error(w, "Error parsing html", http.StatusInternalServerError)
+		renderErrorPage(w, 500)
 		return
 	}
 
@@ -48,7 +51,7 @@ func resultpage(w http.ResponseWriter, r *http.Request) {
 
 	// if url is not for result page error handle
 	if r.URL.Path != "/result" {
-		render404Page(w)
+		renderErrorPage(w, 404)
 		return
 	}
 
@@ -59,7 +62,7 @@ func resultpage(w http.ResponseWriter, r *http.Request) {
 	// Validate the input string
 	for _, ch := range inputString {
 		if ch != 10 && ch != 13 && (ch < 32 || ch > 126) {
-			http.Error(w, "HTTP status 400 - Bad Request", http.StatusBadRequest)
+			renderErrorPage(w, 400)
 			return
 		}
 	}
@@ -89,7 +92,8 @@ func resultpage(w http.ResponseWriter, r *http.Request) {
 	// Parse the HTML template again to render the result
 	t, err := template.ParseFiles("index.html")
 	if err != nil {
-		http.Error(w, "Error parsing html", http.StatusInternalServerError)
+		// http.Error(w, "Error parsing html", http.StatusInternalServerError)
+		renderErrorPage(w, 500)
 		return
 	}
 
@@ -101,13 +105,13 @@ func resultpage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Custom 404 page handler
-func render404Page(w http.ResponseWriter) {
-	// Set the 404 status code
+// Custom error page handler
+func renderErrorPage(w http.ResponseWriter, code int) {
+	// Set the status code
 	w.WriteHeader(http.StatusNotFound)
 
-	// Generate ASCII art for "404" with the "Standard" style
-	inputString := "404"
+	// Generate ASCII art for the error code with the "Standard" style
+	inputString := strconv.Itoa(code)
 	style := "standard"
 
 	fileLines := functions.Read(style)
@@ -115,7 +119,7 @@ func render404Page(w http.ResponseWriter) {
 
 	var res strings.Builder
 
-	// Process the ASCII art for "404"
+	// Process the ASCII art for error code
 	asciiArt := functions.PrintStr(inputString, asciiRep)
 	for _, asciiLine := range asciiArt {
 		res.WriteString(strings.Join(asciiLine, ""))
@@ -123,15 +127,15 @@ func render404Page(w http.ResponseWriter) {
 	}
 
 	// Parse and render the custom 404 template
-	t, err := template.ParseFiles("static/404.html")
+	t, err := template.ParseFiles(fmt.Sprintf("static/%d.html", code))
 	if err != nil {
-		http.Error(w, "Error parsing 404 HTML", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error parsing %d HTML", code), http.StatusInternalServerError)
 		return
 	}
 
 	// Render the template with the result
 	err = t.Execute(w, res.String())
 	if err != nil {
-		http.Error(w, "Error executing 404 template", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error executing %d template", code), http.StatusInternalServerError)
 	}
 }
